@@ -1,0 +1,41 @@
+name: Build Launcher mi placa (S3 + ILI9341)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "boards/diy-esp32s3-ili9341/**"
+      - ".github/workflows/build-mi-placa.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: ["diy-esp32s3-ili9341", "diy-esp32s3-ili9341-btn"]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Instalar PlatformIO
+        run: python -m pip install --upgrade pip platformio esptool requests
+
+      - name: Compilar
+        run: |
+          for I in 1 2 3; do
+            platformio run -e "${{ matrix.env }}" && exit 0
+            echo "Reintento $i..."; sleep 30
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.env }}
+          path: Launcher-*.bin
+          if-no-files-found: error
